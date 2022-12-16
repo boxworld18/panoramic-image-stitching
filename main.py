@@ -36,24 +36,20 @@ def sift(img1, img2):
 
     # BFMatcher with default params
     bf = cv.BFMatcher()
-
-    # matches = bf.knnMatch(des1, des2, k=2)
-    matches = bf.match(des1, des2)
-    matches = sorted(matches, key = lambda x:x.distance)
+    matches = bf.knnMatch(des1, des2, k=2)
 
     # Apply ratio test
-    # good = []
-    # for m, n in matches:
-    #     if m.distance < 0.75 * n.distance:
-    #         good.append([m])
+    good = []
+    for m, n in matches:
+        if m.distance < 0.75 * n.distance:
+            good.append([m])
 
     # cv.drawMatchesKnn expects list of lists as matches.
-    img3 = cv.drawMatches(img1, kp1, img2, kp2, matches[:100], None, flags=2)
-    # img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     
     cv_write(PIC_SIFT, img3)
 
-    return img3
+    return img3, good
 
 def main():
     # read an image
@@ -61,7 +57,7 @@ def main():
     img2 = cv_read(PIC_2)
 
     # sift
-    img3 = sift(img1, img2)
+    img3, good = sift(img1, img2)
 
 if __name__ == '__main__':
     main()
