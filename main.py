@@ -7,6 +7,7 @@ PIC_1 = 'pics/snow_left.jpg'
 PIC_2 = 'pics/snow_right.jpg'
 PIC_SIFT = 'pics/snow_sift.jpg'
 PIC_OUT = 'pics/snow_out.jpg'
+PIC_RESULT = 'pics/result.jpg'
 
 READ_FLAG = cv.IMREAD_COLOR
 
@@ -49,15 +50,47 @@ def sift(img1, img2):
     
     cv_write(PIC_SIFT, img3)
 
-    return img3, good
+    return img3, good, kp1, kp2
 
+def match_points(matches, kp1, kp2): 
+    # At least 4 matches for calculating homogenous matrix
+    if len(matches) < 4:
+        return None
+
+    # find point    
+    temp1 = []
+    temp2 = []
+    for match in matches:
+        temp1.append(kp1[match[0].queryIdx].pt)
+        temp2.append(kp2[match[0].trainIdx].pt)
+
+    points1 = np.float32(temp1)
+    points2 = np.float32(temp2)
+    
+    H, status = cv.findHomography(points1, points2, cv.RANSAC)
+    
+    return H, status
+    
 def main():
     # read an image
     img1 = cv_read(PIC_1)
     img2 = cv_read(PIC_2)
 
     # sift
-    img3, good = sift(img1, img2)
-
+    img3, good, kp1, kp2 = sift(img1, img2)
+    
+    # match points
+    mp = match_points(good, kp1, kp2)
+    if mp is None:
+        return
+    
+    H, status = mp
+    
+    # image montage
+    result = cv.warpPerspective(img1, H, (img1.shape[1] + img2.shape[1], img1.shape[0]))
+    cv_write(PIC_RESULT, result)
+    
+    # result[0:img2.shape[0], 0:img2.shape[1]] = img2
+    
 if __name__ == '__main__':
     main()
