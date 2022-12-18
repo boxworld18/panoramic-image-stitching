@@ -28,6 +28,14 @@ def main():
     cv_write(PIC_SIFT, vis)
     cv_show("Result", result)
     cv_write(PIC_OUT, result)
+
+    # 用opencv自带的函数拼接图片
+    stitcher = cv.Stitcher_create()
+    (status, pano) = stitcher.stitch([imageA, imageB])
+    print('OpenCV Stitcher Status: {}'.format(status))
+    if status == cv.Stitcher_OK:
+        cv_show("OpenCV Stitcher", pano)
+        cv_write(PIC_CV_RESULT, pano)
     
 if __name__ == '__main__':
     main()
