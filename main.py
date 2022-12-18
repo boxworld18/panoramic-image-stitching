@@ -2,95 +2,32 @@ import cv2 as cv
 import numpy as np
 import sys, os, math, argparse
 from matplotlib import pyplot as plt
+from Stitcher import Stitcher
+from utils import cv_read, cv_show, cv_write
 
-PIC_1 = 'pics/snow_left.jpg'
-PIC_2 = 'pics/snow_right.jpg'
-PIC_SIFT = 'pics/snow_sift.jpg'
-PIC_OUT = 'pics/snow_out.jpg'
-PIC_RESULT = 'pics/result.jpg'
-
-READ_FLAG = cv.IMREAD_COLOR
-
-def cv_read(img_path, flag=READ_FLAG):
-    img = cv.imread(img_path, flag)
-    print('reading image: {}, shape: {}'.format(img_path, img.shape))
-    return img
-
-def cv_write(img_path, img):
-    print('writing image: {}, shape: {}'.format(img_path, img.shape))
-    cv.imwrite(img_path, img)    
-
-def cv_show(name, img):
-    print('showing image: {}, shape: {}'.format(name, img.shape))
-    cv.namedWindow(name, cv.WINDOW_NORMAL)
-    cv.imshow(name, img)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-
-def sift(img1, img2):
-    # Initiate SIFT detector
-    sift = cv.SIFT_create()
-
-    # find the keypoints and descriptors with SIFT
-    kp1, des1 = sift.detectAndCompute(img1, None)
-    kp2, des2 = sift.detectAndCompute(img2, None)
-
-    # BFMatcher with default params
-    bf = cv.BFMatcher()
-    matches = bf.knnMatch(des1, des2, k=2)
-
-    # Apply ratio test
-    good = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good.append([m])
-
-    # cv.drawMatchesKnn expects list of lists as matches.
-    img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    
-    cv_write(PIC_SIFT, img3)
-
-    return img3, good, kp1, kp2
-
-def match_points(matches, kp1, kp2): 
-    # At least 4 matches for calculating homogenous matrix
-    if len(matches) < 4:
-        return None
-
-    # find point    
-    temp1 = []
-    temp2 = []
-    for match in matches:
-        temp1.append(kp1[match[0].queryIdx].pt)
-        temp2.append(kp2[match[0].trainIdx].pt)
-
-    points1 = np.float32(temp1)
-    points2 = np.float32(temp2)
-    
-    H, status = cv.findHomography(points1, points2, cv.RANSAC)
-    
-    return H, status
+PIC_TAG = 'snow'
+PIC_SUFFIX = '.jpg'
+PIC_1 = 'pics/{}_left{}'.format(PIC_TAG, PIC_SUFFIX)
+PIC_2 = 'pics/{}_right{}'.format(PIC_TAG, PIC_SUFFIX)
+PIC_SIFT = 'pics/{}_sift{}'.format(PIC_TAG, PIC_SUFFIX)
+PIC_OUT = 'pics/{}_out{}'.format(PIC_TAG, PIC_SUFFIX)
+PIC_RESULT = 'pics/{}_result{}'.format(PIC_TAG, PIC_SUFFIX)
+PIC_CV_RESULT = 'pics/{}_cv_result{}'.format(PIC_TAG, PIC_SUFFIX)
     
 def main():
-    # read an image
-    img1 = cv_read(PIC_1)
-    img2 = cv_read(PIC_2)
+    # 读取拼接图片
+    imageA = cv_read(PIC_1)
+    imageB = cv_read(PIC_2)
 
-    # sift
-    img3, good, kp1, kp2 = sift(img1, img2)
-    
-    # match points
-    mp = match_points(good, kp1, kp2)
-    if mp is None:
-        return
-    
-    H, status = mp
-    
-    # image montage
-    result = cv.warpPerspective(img1, H, (img1.shape[1] + img2.shape[1], img1.shape[0]))
-    cv_write(PIC_RESULT, result)
-    
-    # result[0:img2.shape[0], 0:img2.shape[1]] = img2
+    # 把图片拼接成全景图
+    stitcher = Stitcher()
+    (result, vis) = stitcher.stitch([imageA, imageB], showMatches=True)
+
+    # 显示所有图片
+    cv_show("Keypoint Matches", vis)
+    cv_write(PIC_SIFT, vis)
+    cv_show("Result", result)
+    cv_write(PIC_OUT, result)
     
 if __name__ == '__main__':
     main()
