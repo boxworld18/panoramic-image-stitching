@@ -8,3 +8,6 @@ pics/*_out.png
 # folder
 .vscode/*
 __pycache__/*
+
+# macos
+.DS_Store
