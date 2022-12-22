@@ -1,108 +1,80 @@
 import numpy as np
 import cv2 as cv
-from utils import cv_show
+from utils import cv_show, cv_write
 from homography import Homography
+from matcher import Matcher
+from define import PIC_MATCH
 
 class Stitcher:
 
-    #拼接函数
+    # panoramic image stitching
     def stitch(self, images, ratio=0.75, reprojThresh=4.0,showMatches=False):
-        #获取输入图片
-        (imageB, imageA) = images
-        #检测A、B图片的SIFT关键特征点，并计算特征描述子
-        (kpsA, featuresA) = self.detectAndDescribe(imageA)
-        (kpsB, featuresB) = self.detectAndDescribe(imageB)
+        print("==================Stitching begin==================")
+        # unpack the images
+        imageB, imageA = images
 
-        # 匹配两张图片的所有特征点，返回匹配结果
-        M = self.matchKeypoints(kpsA, kpsB, featuresA, featuresB, ratio, reprojThresh)
+        # find the keypoints and descriptors with SIFT
+        kpA, desA = self.sift(imageA)
+        kpB, desB = self.sift(imageB)
 
-        # 如果返回结果为空，没有匹配成功的特征点，退出算法
-        if M is None:
+        # match features between the two images
+        matcher = Matcher()
+        matches = matcher.knnMatch(desA, desB, ratio)
+
+        # if the matches are less than 4, then there are not enough matches to create a panorama
+        print('matches {} keypoints'.format(len(matches)))
+        if len(matches) <= 4:
+            print("Not enough matches are found")
             return None
 
-        # 否则，提取匹配结果
-        # H是3x3视角变换矩阵      
-        (matches, H, status) = M
-        # 将图片A进行视角变换，result是变换后图片
-        result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))
-        cv_show('result', result)
-        # 将图片B传入result图片最左端
-        result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
-        cv_show('result', result)
-        # 检测是否需要显示图片匹配
+        # compute the homography between the two sets of matched points
+        ptsA = np.array([kpA[i] for (_, i) in matches]).astype(np.float32)
+        ptsB = np.array([kpB[i] for (i, _) in matches]).astype(np.float32)
+
+        (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
+        print("opencv H: {}".format(H))
+
+        homography = Homography()
+        (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, 5.0) # H is 3x3 homography matrix   
+        print("our H: {}".format(H))
+
+        # show the matches
+        matchImage = self.drawMatches(imageA, imageB, kpA, kpB, matches, status)
         if showMatches:
-            # 生成匹配图片
-            vis = self.drawMatches(imageA, imageB, kpsA, kpsB, matches, status)
-            # 返回结果
-            return (result, vis)
+            cv_show("Keypoint Matches", matchImage)
+            cv_write(PIC_MATCH, matchImage)
+         
+        # apply a perspective transform to stitch the images together
+        result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))  # TODO: decide the shape
+        cv_show('result A', result)
+        result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
+        cv_show('result A+B', result)
 
-        # 返回匹配结果
-        return result
+        print("==================Stitching end==================")
+        return (result, matchImage)
 
-    def detectAndDescribe(self, image):
-        # 将彩色图片转换成灰度图
+    def sift(self, image):
+        # from opencv documentation
         gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-
-        # 建立SIFT生成器
         descriptor = cv.SIFT_create()
-        # 检测SIFT特征点，并计算描述子
-        (kps, features) = descriptor.detectAndCompute(image, None)
+        kp, des = descriptor.detectAndCompute(gray, None)
+        kp = np.array([p.pt for p in kp]).astype(np.float32)
+        return kp, des
 
-        # 将结果转换成NumPy数组
-        kps = np.float32([kp.pt for kp in kps])
-
-        # 返回特征点集，及对应的描述特征
-        return (kps, features)
-
-    def matchKeypoints(self, kpsA, kpsB, featuresA, featuresB, ratio, reprojThresh):
-        # 建立暴力匹配器
-        matcher = cv.BFMatcher()
-   
-        # 使用KNN检测来自A、B图的SIFT特征匹配对，K=2
-        rawMatches = matcher.knnMatch(featuresA, featuresB, 2)
-
-        matches = []
-        for m in rawMatches:
-            # 当最近距离跟次近距离的比值小于ratio值时，保留此匹配对
-            if len(m) == 2 and m[0].distance < m[1].distance * ratio:
-            # 存储两个点在featuresA, featuresB中的索引值
-                matches.append((m[0].trainIdx, m[0].queryIdx))
-
-        # 当筛选后的匹配对大于4时，计算视角变换矩阵
-        if len(matches) > 4:
-            print('matches', len(matches))
-            # 获取匹配对的点坐标
-            ptsA = np.float32([kpsA[i] for (_, i) in matches])
-            ptsB = np.float32([kpsB[i] for (i, _) in matches])
-
-            # 计算视角变换矩阵
-            (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
-            print(H)
-            homography = Homography()
-            (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, 5.0)
-            print(H)
-            # 返回结果
-            return (matches, H, status)
-
-        # 如果匹配对小于4时，返回None
-        return None
-
-    def drawMatches(self, imageA, imageB, kpsA, kpsB, matches, status):
-        # 初始化可视化图片，将A、B图左右连接到一起
+    def drawMatches(self, imageA, imageB, kpA, kpB, matches, status):
+        # initialize the output visualization image
         (hA, wA) = imageA.shape[:2]
         (hB, wB) = imageB.shape[:2]
-        vis = np.zeros((max(hA, hB), wA + wB, 3), dtype="uint8")
+        vis = np.zeros((max(hA, hB), wA + wB, 3)).astype(np.uint8)
         vis[0:hA, 0:wA] = imageA
         vis[0:hB, wA:] = imageB
 
-        # 联合遍历，画出匹配对
+        # loop over the matches 
         for ((trainIdx, queryIdx), s) in zip(matches, status):
-            # 当点对匹配成功时，画到可视化图上
+            # only process the match if the keypoint was successfully matched
             if s == 1:
-                # 画出匹配对
-                ptA = (int(kpsA[queryIdx][0]), int(kpsA[queryIdx][1]))
-                ptB = (int(kpsB[trainIdx][0]) + wA, int(kpsB[trainIdx][1]))
+                ptA = (int(kpA[queryIdx][0]), int(kpA[queryIdx][1]))
+                ptB = (int(kpB[trainIdx][0]) + wA, int(kpB[trainIdx][1]))
                 cv.line(vis, ptA, ptB, (0, 255, 0), 1)
 
-        # 返回可视化结果
         return vis

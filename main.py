@@ -4,32 +4,22 @@ import sys, os, math, argparse
 from matplotlib import pyplot as plt
 from Stitcher import Stitcher
 from utils import cv_read, cv_show, cv_write
-
-PIC_TAG = 'road'
-PIC_SUFFIX = '.png'
-PIC_1 = 'pics/{}/{}_left{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
-PIC_2 = 'pics/{}/{}_right{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
-PIC_SIFT = 'pics/{}/{}_sift{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
-PIC_OUT = 'pics/{}/{}_out{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
-PIC_RESULT = 'pics/{}/{}_result{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
-PIC_CV_RESULT = 'pics/{}/{}_cv_result{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+from define import PIC_1, PIC_2, PIC_OUT, PIC_CV_RESULT
     
 def main():
-    # 读取拼接图片
+    # read images
     imageA = cv_read(PIC_1)
     imageB = cv_read(PIC_2)
 
-    # 把图片拼接成全景图
+    # use my stitcher to stitch images
     stitcher = Stitcher()
-    (result, vis) = stitcher.stitch([imageA, imageB], showMatches=True)
+    (result, vis) = stitcher.stitch(images=(imageA, imageB), showMatches=True)
 
-    # 显示所有图片
-    cv_show("Keypoint Matches", vis)
-    cv_write(PIC_SIFT, vis)
+    # show the result
     cv_show("Result", result)
     cv_write(PIC_OUT, result)
 
-    # 用opencv自带的函数拼接图片
+    # use OpenCV stitcher to stitch images
     stitcher = cv.Stitcher_create()
     (status, pano) = stitcher.stitch([imageA, imageB])
     print('OpenCV Stitcher Status: {}'.format(status))
