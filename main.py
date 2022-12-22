@@ -5,14 +5,14 @@ from matplotlib import pyplot as plt
 from Stitcher import Stitcher
 from utils import cv_read, cv_show, cv_write
 
-PIC_TAG = 'snow'
-PIC_SUFFIX = '.jpg'
-PIC_1 = 'pics/{}_left{}'.format(PIC_TAG, PIC_SUFFIX)
-PIC_2 = 'pics/{}_right{}'.format(PIC_TAG, PIC_SUFFIX)
-PIC_SIFT = 'pics/{}_sift{}'.format(PIC_TAG, PIC_SUFFIX)
-PIC_OUT = 'pics/{}_out{}'.format(PIC_TAG, PIC_SUFFIX)
-PIC_RESULT = 'pics/{}_result{}'.format(PIC_TAG, PIC_SUFFIX)
-PIC_CV_RESULT = 'pics/{}_cv_result{}'.format(PIC_TAG, PIC_SUFFIX)
+PIC_TAG = 'road'
+PIC_SUFFIX = '.png'
+PIC_1 = 'pics/{}/{}_left{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+PIC_2 = 'pics/{}/{}_right{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+PIC_SIFT = 'pics/{}/{}_sift{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+PIC_OUT = 'pics/{}/{}_out{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+PIC_RESULT = 'pics/{}/{}_result{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+PIC_CV_RESULT = 'pics/{}/{}_cv_result{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
     
 def main():
     # 读取拼接图片

@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 from utils import cv_show
+from homography import Homography
 
 class Stitcher:
 
@@ -24,7 +25,7 @@ class Stitcher:
         (matches, H, status) = M
         # 将图片A进行视角变换，result是变换后图片
         result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))
-        cv_show('result', result, )
+        cv_show('result', result)
         # 将图片B传入result图片最左端
         result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
         cv_show('result', result)
@@ -76,7 +77,10 @@ class Stitcher:
 
             # 计算视角变换矩阵
             (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
-
+            print(H)
+            homography = Homography()
+            (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, 5.0)
+            print(H)
             # 返回结果
             return (matches, H, status)
 
