@@ -76,10 +76,11 @@ class Stitcher:
             ptsB = np.float32([kpsB[i] for (i, _) in matches])
 
             # 计算视角变换矩阵
-            # (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
+            (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
+            print(H)
             homography = Homography()
             (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, 5.0)
-            
+            print(H)
             # 返回结果
             return (matches, H, status)
 

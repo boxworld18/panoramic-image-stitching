@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt
 from Stitcher import Stitcher
 from utils import cv_read, cv_show, cv_write
 
-PIC_TAG = 'snow'
-PIC_SUFFIX = '.jpg'
+PIC_TAG = 'road'
+PIC_SUFFIX = '.png'
 PIC_1 = 'pics/{}/{}_left{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
 PIC_2 = 'pics/{}/{}_right{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
 PIC_SIFT = 'pics/{}/{}_sift{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
