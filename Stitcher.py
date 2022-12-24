@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 from utils import cv_show
+from fusion import Fusion
 
 class Stitcher:
 
@@ -26,7 +27,8 @@ class Stitcher:
         result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))
         cv_show('result', result, )
         # 将图片B传入result图片最左端
-        result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
+        # result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
+        result = Fusion().weigh_fussion(result, imageB)
         cv_show('result', result)
         # 检测是否需要显示图片匹配
         if showMatches:
