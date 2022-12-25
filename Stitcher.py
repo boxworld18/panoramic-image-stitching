@@ -11,6 +11,18 @@ class Stitcher:
     # panoramic image stitching
     def stitch(self, images, ratio=0.75, reprojThresh=4.0, fusionMethod="default", showMatches=False, showAny=True):
         print("==================Stitching begin==================")
+
+        # # unpack the images
+        # n = len(images)
+
+        # # find the keypoints and descriptors with SIFT
+        # kps = []
+        # descs = []
+        # for i in range(n):
+        #     kp, desc = self.sift(images[i])
+        #     kps.append(kp)
+        #     descs.append(desc)
+
         # unpack the images
         imageB, imageA = images
 
@@ -36,7 +48,7 @@ class Stitcher:
         print("opencv H: {}".format(H))
 
         homography = Homography()
-        (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, 5.0) # H is 3x3 homography matrix   
+        (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh) # H is 3x3 homography matrix   
         print("our H: {}".format(H))
 
         # show the matches
@@ -46,6 +58,23 @@ class Stitcher:
                 cv_show("Keypoint Matches", matchImage)
             cv_write(PIC_MATCH, matchImage)
          
+        # apply a perspective transform to stitch the images together
+        result = self.fusion((imageA, imageB), H, fusionMethod, showAny)
+
+        print("==================Stitching end==================")
+        return (result, matchImage)
+
+    def sift(self, image):
+        # from opencv documentation
+        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        descriptor = cv.SIFT_create()
+        kp, des = descriptor.detectAndCompute(gray, None)
+        kp = np.array([p.pt for p in kp]).astype(np.float32)
+        return kp, des
+
+    def fusion(self, images, H, fusionMethod, showAny=True):
+        imageA, imageB = images
+
         # apply a perspective transform to stitch the images together
         result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))  # TODO: decide the shape
         if showAny:
@@ -61,21 +90,12 @@ class Stitcher:
         else:
             result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
 
-        print("==================Stitching end==================")
-        return (result, matchImage)
-
-    def sift(self, image):
-        # from opencv documentation
-        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        descriptor = cv.SIFT_create()
-        kp, des = descriptor.detectAndCompute(gray, None)
-        kp = np.array([p.pt for p in kp]).astype(np.float32)
-        return kp, des
+        return result
 
     def drawMatches(self, imageA, imageB, kpA, kpB, matches, status):
         # initialize the output visualization image
-        (hA, wA) = imageA.shape[:2]
-        (hB, wB) = imageB.shape[:2]
+        hA, wA = imageA.shape[:2]
+        hB, wB = imageB.shape[:2]
         vis = np.zeros((max(hA, hB), wA + wB, 3)).astype(np.uint8)
         vis[0:hA, 0:wA] = imageA
         vis[0:hB, wA:] = imageB
