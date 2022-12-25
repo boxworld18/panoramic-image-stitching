@@ -1,9 +1,11 @@
 # file
 .ipynb
-pics/*_sift.jpg
-pics/*_sift.png
-pics/*_out.jpg
-pics/*_out.png
+pics/*/*_sift.jpg
+pics/*/*_sift.png
+pics/*/*_match.jpg
+pics/*/*_match.png
+pics/*/*_out.jpg
+pics/*/*_out.png
 
 # folder
 .vscode/*
