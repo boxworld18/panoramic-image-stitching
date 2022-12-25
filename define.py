@@ -1,7 +1,8 @@
 PIC_TAG = 'road'
 PIC_SUFFIX = '.png'
 PIC_1 = 'pics/{}/{}_left{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
-PIC_2 = 'pics/{}/{}_right{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+PIC_2 = 'pics/{}/{}_middle{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
+PIC_3 = 'pics/{}/{}_right{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
 PIC_SIFT = 'pics/{}/{}_sift{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
 PIC_MATCH = 'pics/{}/{}_match{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
 PIC_OUT = 'pics/{}/{}_out{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
