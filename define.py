@@ -1,5 +1,5 @@
-PIC_TAG = 'road'
-PIC_SUFFIX = '.png'
+PIC_TAG = 'snow'
+PIC_SUFFIX = '.jpg'
 PIC_1 = 'pics/{}/{}_left{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
 PIC_2 = 'pics/{}/{}_right{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)
 PIC_SIFT = 'pics/{}/{}_sift{}'.format(PIC_TAG, PIC_TAG, PIC_SUFFIX)

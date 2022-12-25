@@ -9,7 +9,7 @@ from define import *
 class Stitcher:
 
     # panoramic image stitching
-    def stitch(self, images, ratio=0.75, reprojThresh=4.0,showMatches=False):
+    def stitch(self, images, ratio=0.75, reprojThresh=4.0, fusionMethod="default", showMatches=False, showAny=True):
         print("==================Stitching begin==================")
         # unpack the images
         imageB, imageA = images
@@ -42,15 +42,24 @@ class Stitcher:
         # show the matches
         matchImage = self.drawMatches(imageA, imageB, kpA, kpB, matches, status)
         if showMatches:
-            cv_show("Keypoint Matches", matchImage)
+            if showAny:
+                cv_show("Keypoint Matches", matchImage)
             cv_write(PIC_MATCH, matchImage)
          
         # apply a perspective transform to stitch the images together
         result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))  # TODO: decide the shape
-        cv_show('result A', result)
-        # result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
-        result = Fusion().weigh_fussion(result, imageB)
-        cv_show('result A+B', result)
+        if showAny:
+            cv_show('result A', result)
+        
+        fusion = Fusion()
+        if fusionMethod == "poisson":
+            result = fusion.poisson(result, imageB)
+        elif fusionMethod == "weight": 
+            result = fusion.weigh_fussion(result, imageB)
+        elif fusionMethod == "multiband":
+            result = fusion.Multiband(result, imageB)
+        else:
+            result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
 
         print("==================Stitching end==================")
         return (result, matchImage)
