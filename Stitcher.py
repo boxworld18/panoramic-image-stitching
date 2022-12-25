@@ -3,7 +3,8 @@ import cv2 as cv
 from utils import cv_show, cv_write
 from homography import Homography
 from matcher import Matcher
-from define import PIC_MATCH
+from fusion import Fusion
+from define import *
 
 class Stitcher:
 
@@ -47,7 +48,8 @@ class Stitcher:
         # apply a perspective transform to stitch the images together
         result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))  # TODO: decide the shape
         cv_show('result A', result)
-        result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
+        # result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
+        result = Fusion().weigh_fussion(result, imageB)
         cv_show('result A+B', result)
 
         print("==================Stitching end==================")
