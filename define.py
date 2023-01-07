@@ -1,4 +1,4 @@
-PIC_TAG = 'elden1'
+PIC_TAG = 'elden2'
 PIC_SUFFIX = '.png'
 PIC_1 = 'pics/{}/1{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_2 = 'pics/{}/2{}'.format(PIC_TAG, PIC_SUFFIX)

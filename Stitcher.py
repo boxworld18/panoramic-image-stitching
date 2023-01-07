@@ -8,6 +8,9 @@ from define import *
 
 class Stitcher:
 
+    def __init__(self):
+        self.fusionNum = 0
+
     # panoramic image stitching
     def stitch(self, images, ratio=0.75, reprojThresh=4.0, fusionMethod="default", showAny=True):
         print("==================Stitching begin==================")
@@ -112,11 +115,18 @@ class Stitcher:
             t = [-xmin,-ymin]
             Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
 
+            # h, w = (min(ymax-ymin, h1+h2), min(xmax-xmin, w1+w2))
+            h, w = (ymax - ymin, xmax - xmin)
+
+            print('h1: {}, h2: {}, w1: {}, w2: {}'.format(h1, h2, w1, w2))
+            print('h: {}, w: {}'.format(h, w))
+            print('t: {}'.format(t))
+            
             result = None
             if reverse: 
-                result = cv.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin)) # 变换右侧图像
+                result = cv.warpPerspective(img2, Ht.dot(H), (w, h)) # 变换右侧图像
             else:
-                result = cv.warpPerspective(img1, Ht.dot(H), (xmax-xmin, ymax-ymin)) # 变换左侧图像
+                result = cv.warpPerspective(img1, Ht.dot(H), (w, h)) # 变换左侧图像
             # cv_show('result A', result)
 
             img = img2
@@ -129,23 +139,25 @@ class Stitcher:
                 result = fusion.Multiband(result, img, reverse)
             else:
                 if reverse:
-                    for i in range(t[1], h1+t[1]):
-                        for j in range(t[0], w1+t[0]):
+                    for i in range(t[1], min(h1+t[1], h)):
+                        for j in range(t[0], min(w1+t[0], w)):
                             if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
                                 result[i][j] = img1[i-t[1]][j-t[0]]
-                    # result[t[1]:h1+t[1],t[0]:w1+t[0]] = img1
                 else:
-                    for i in range(t[1], h2+t[1]):
-                        for j in range(t[0], w2+t[0]):
+                    for i in range(t[1], min(h2+t[1], h)):
+                        for j in range(t[0], min(w2+t[0], w)):
                             if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
                                 result[i][j] = img2[i-t[1]][j-t[0]]
+            
+            print('result shape: {}'.format(result.shape))
+
             BOUND = 4000
             if reverse:
-                result = result[t[1]:h1+t[1],:,:]
+                result = result[t[1]:min(h1+t[1], h),:,:]
                 if result.shape[1] > BOUND:
                     result = result[:,:BOUND,:]
             else:
-                result = result[t[1]:h2+t[1],:,:]
+                result = result[t[1]:min(h2+t[1], h),:,:]
                 if result.shape[1] > BOUND:
                     result = result[:,-BOUND:,:]
             cnt = 0
@@ -166,7 +178,9 @@ class Stitcher:
             if cut2 == 0:
                 cut2 = result.shape[1]
             result = result[:, cut1:cut2, :]
-            cv_show('result', result)
+            # cv_show('result', result)
+            cv_write('result_{}.png'.format(self.fusionNum), result)
+            self.fusionNum += 1
             return result
 
         # apply a perspective transform to stitch the images together
