@@ -1,5 +1,6 @@
 import numpy as np
 import cv2 as cv
+import math
 from utils import cv_show, cv_write
 from homography import Homography
 from matcher import Matcher
@@ -70,6 +71,24 @@ class Stitcher:
         print("==================Stitching end==================")
         return images[n // 2]
 
+    # do cylindrical projection
+    def cylindricalProjection(self, image, f = 1.0):
+        h = image.shape[0]
+        w = image.shape[1]
+        
+        res = np.zeros_like(image)
+        # f = (w * 0.5) / math.atan2(np.pi, 8.0)
+        f = 500.0
+        
+        for i in range(h):
+            for j in range(w):
+                x = int(f * math.atan2(j - w * 0.5, f) + f * math.atan2(w, 2.0 * f) + 0.5)
+                y = int(f * (i - h * 0.5) * 1.0 / np.sqrt((j - w * 0.5) * (j - w * 0.5) + f * f) + h * 0.5 + 0.5)
+                if x >= 0 and x < w and y >= 0 and y < h:
+                    res[y, x] = image[i, j]
+        
+        return res
+    
     def sift(self, image):
         # from opencv documentation
         gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
