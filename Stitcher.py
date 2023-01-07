@@ -123,11 +123,11 @@ class Stitcher:
             img = img2
             fusion = Fusion()
             if fusionMethod == "poisson":
-                result = fusion.poisson(result, img)
+                result = fusion.poisson(result, img, reverse)
             elif fusionMethod == "weight": 
-                result = fusion.weigh_fussion(result, img)
+                result = fusion.weigh_fussion(result, img, reverse)
             elif fusionMethod == "multiband":
-                result = fusion.Multiband(result, img)
+                result = fusion.Multiband(result, img, reverse)
             else:
                 if reverse:
                     for i in range(t[1], h1+t[1]):
@@ -158,11 +158,11 @@ class Stitcher:
         # cv_show('result_tmp', result)
         fusion = Fusion()
         if fusionMethod == "poisson":
-            result = fusion.poisson(result, img)
+            result = fusion.poisson(result, img, reverse)
         elif fusionMethod == "weight": 
-            result = fusion.weigh_fussion(result, img)
+            result = fusion.weigh_fussion(result, img, reverse)
         elif fusionMethod == "multiband":
-            result = fusion.Multiband(result, img)
+            result = fusion.Multiband(result, img, reverse)
         else:
             if reverse:
                 for i in range(0, img.shape[0]):
