@@ -129,14 +129,14 @@ class Stitcher:
                 result = cv.warpPerspective(img1, Ht.dot(H), (w, h)) # 变换左侧图像
             # cv_show('result A', result)
 
-            img = img2
+            img = img1 if reverse else img2
             fusion = Fusion()
             if fusionMethod == "poisson":
-                result = fusion.poisson(result, img, reverse)
+                result = fusion.poisson(result, img, reverse, t)
             elif fusionMethod == "weight": 
-                result = fusion.weigh_fussion(result, img, reverse)
+                result = fusion.weigh_fussion(result, img, reverse, t)
             elif fusionMethod == "multiband":
-                result = fusion.Multiband(result, img, reverse)
+                result = fusion.Multiband(result, img, reverse, t)
             else:
                 if reverse:
                     for i in range(t[1], min(h1+t[1], h)):

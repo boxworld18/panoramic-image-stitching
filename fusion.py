@@ -5,104 +5,98 @@ from utils import cv_show
 class Fusion:
 	
 	# 泊松融合
-	def poisson(self, result, imageB, reverse = False):
-		if(reverse):
-			start = result.shape[1] - imageB.shape[1]
-			for i in range(imageB.shape[0]):
-				for j in range(imageB.shape[1]):
-					if result[i][j + start][0] == 0 and result[i][j + start][1] == 0 and result[i][j + start][2] == 0:
-						result[i][j + start] = imageB[i][j]
-			mask = 255 * np.ones(imageB.shape, dtype=imageB.dtype)
-			result = cv.seamlessClone(imageB, result, mask, (start + imageB.shape[1] // 2, imageB.shape[0] // 2), cv.NORMAL_CLONE)
-		else:
-			for i in range(imageB.shape[0]):
-				for j in range(imageB.shape[1]):
-					if result[i][j][0] == 0 and result[i][j][1] == 0 and result[i][j][2] == 0:
-						result[i][j] = imageB[i][j]		
-			mask = 255 * np.ones(imageB.shape, dtype=imageB.dtype)
-			result = cv.seamlessClone(imageB, result, mask, (imageB.shape[1] // 2, imageB.shape[0] // 2), cv.NORMAL_CLONE)
+	def poisson(self, result, image, reverse, t):
+		h, w = image.shape[:2]
+		for i in range(t[1], h+t[1]):
+			for j in range(t[0], w+t[0]):
+				if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+					result[i][j] = image[i-t[1]][j-t[0]]
+		mask = 255 * np.ones(image.shape, dtype=image.dtype)
+		result = cv.seamlessClone(image, result, mask, (t[0] + image.shape[1] // 2, t[1] + image.shape[0] // 2), cv.NORMAL_CLONE)		
 		return result
 
 
 	# 加权融合
-	def weigh_fussion(self, result, imageB, reverse = False):
-		if(reverse):
-			border = result.shape[1] - imageB.shape[1]
-			right_top, right_bottom = border, border
-			for j in range(result.shape[1] - 1, -1, -1):
-				if result[0][j][0] != 0 or result[0][j][1] != 0 or result[0][j][2] != 0:
+	def weigh_fussion(self, result, image, reverse, t):
+		h, w = image.shape[:2]
+		if(reverse == False):
+			right_top, right_bottom = t[0], t[0]
+			for j in range(t[0] + w - 1, t[0] -1, -1):
+				if result[t[1]][j][0] != 0 or result[t[1]][j][1] != 0 or result[t[1]][j][2] != 0:
 					right_top = j
 					break
-			for j in range(result.shape[1] - 1, -1, -1):
-				if result[imageB.shape[0] - 1][j][0] != 0 or result[imageB.shape[0] - 1][j][1] != 0 or result[imageB.shape[0] - 1][j][2] != 0:
+			for j in range(t[0] + w - 1, t[0] -1, -1):
+				if result[t[1] + h - 1][j][0] != 0 or result[t[1] + h - 1][j][1] != 0 or result[t[1] + h - 1][j][2] != 0:
 					right_bottom = j
 					break
 			end = right_top if right_top > right_bottom else right_bottom
-			width = end - border
+			width = end - t[0] + 1
 			alpha = 1.0
-			result[0:imageB.shape[0], end:result.shape[1]] = imageB[0:imageB.shape[0], width:imageB.shape[1]]
-			for i in range(imageB.shape[0]):
-				for j in range(border, end):
+			result[t[1]:t[1]+h, end + 1:t[0]+w] = image[0:image.shape[0], width:image.shape[1]]
+			for i in range(t[1], t[1] + h):
+				for j in range(end, t[0] - 1, -1):
 					if result[i][j][0] == 0 and result[i][j][1] == 0 and result[i][j][2] == 0:
 						alpha = 1.0
 					else:
 						alpha = 1.0 - (end - j) / width
-					result[i][j] = alpha * imageB[i][j] + (1 - alpha) * result[i][j]
+					result[i][j] = alpha * image[i - t[1]][j - t[0]] + (1 - alpha) * result[i][j]
 		else:
-			left_top, left_bottom = imageB.shape[1], imageB.shape[1]
-			for j in range(result.shape[1]):
-				if result[0][j][0] != 0 or result[0][j][1] != 0 or result[0][j][2] != 0:
+			left_top, left_bottom = t[0] + w, t[0] + w
+			for j in range(t[0], t[0] + w):
+				if result[t[1]][j][0] != 0 or result[t[1]][j][1] != 0 or result[t[1]][j][2] != 0:
 					left_top = j
 					break
-			for j in range(result.shape[1]):
-				if result[imageB.shape[0] - 1][j][0] != 0 or result[imageB.shape[0] - 1][j][1] != 0 or result[imageB.shape[0] - 1][j][2] != 0:
+			for j in range(t[0], t[0] + w):
+				if result[t[1] + h - 1][j][0] != 0 or result[t[1] + h - 1][j][1] != 0 or result[t[1] + h - 1][j][2] != 0:
 					left_bottom = j
 					break
 			start = left_top if left_top < left_bottom else left_bottom
-			width = imageB.shape[1] - start
+			width = t[0] + w - start
 			alpha = 1.0
-			result[0:imageB.shape[0], 0:start] = imageB[0:imageB.shape[0], 0:start]
-			for i in range(imageB.shape[0]):
-				for j in range(start, imageB.shape[1]):
+			result[t[1]:t[1] + h, t[0]:start] = image[0:image.shape[0], 0:start - t[0]]
+			for i in range(t[1], t[1] + h):
+				for j in range(start, t[0] + w):
 					if result[i][j][0] == 0 and result[i][j][1] == 0 and result[i][j][2] == 0:
 						alpha = 1.0
 					else:
 						alpha = 1.0 - (j - start) / width
-					result[i][j] = alpha * imageB[i][j] + (1 - alpha) * result[i][j]
+					result[i][j] = alpha * image[i - t[1]][j - t[0]] + (1 - alpha) * result[i][j]
 		return result
 
 	# 金字塔融合
-	def Multiband(self, result, imageB, reverse = False):
+	def Multiband(self, result, image, reverse, t):
 		num_levels = 6
+		h, w = image.shape[:2]
 		source = np.zeros(result.shape, dtype = result.dtype)
+		source[t[1] : t[1] + h, t[0] : t[0] + w] = image
 		mask = np.ones(result.shape, dtype = np.float32)
 		mask[result == 0] = 0
 
-		if reverse:
-			source[0 : imageB.shape[0], result.shape[1] - imageB.shape[1] : result.shape[1]] = imageB
-			for i in range(imageB.shape[0]):
-				right = 0
-				for j in range(result.shape[1] - 1, result.shape[1] - imageB.shape[1] -1, -1):
+		if (reverse == False):
+			for i in range(t[1], t[1] + h):
+				right = t[0]
+				for j in range(t[0] + w - 1, t[0] -1, -1):
 					if result[i][j][0] != 0 or result[i][j][1] != 0 or result[i][j][2] != 0:
 						right = j
 						break
-				if right != 0:
-					width = right - (result.shape[1] - imageB.shape[1])
-					for j in range(result.shape[1] - imageB.shape[1], right):
-						mask[i][j] = (right - j) / width
+				if right != t[0]:
+					width = right - t[0]
+					for j in range(t[0], right + 1):
+						if(mask[i][j].all() == 1):
+							mask[i][j] = (right - j) / width
 		else:
-			source[0 : imageB.shape[0], 0 : imageB.shape[1]] = imageB
-			for i in range(imageB.shape[0]):
-				left = imageB.shape[1]
-				for j in range(imageB.shape[1]):
+			for i in range(t[1], t[1] + h):
+				left = t[0] + w
+				for j in range(t[0], t[0] + w):
 					if result[i][j][0] != 0 or result[i][j][1] != 0 or result[i][j][2] != 0:
 						left = j
 						break
-				if left != imageB.shape[1]:
-					width = imageB.shape[1] - left
-					for j in range(left, imageB.shape[1]):
-						mask[i][j] = (j - left) / width
-		
+				if left != t[0] + w:
+					width = t[0] + w - left
+					for j in range(left, t[0] + w):
+						if(mask[i][j].all() == 1):
+							mask[i][j] = (j - left) / width
+
 		# 生成高斯金字塔
 		GA = result.copy()
 		GB = source.copy()
