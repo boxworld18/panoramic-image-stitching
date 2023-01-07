@@ -101,9 +101,8 @@ class Stitcher:
         imageA, imageB = images
 
         def warpTwoImages(img1, img2, H, fusionMethod, reverse=False):
-            '''warp img2 to img1 with homograph H'''
-            h1,w1 = img1.shape[:2]
-            h2,w2 = img2.shape[:2]
+            h1, w1 = img1.shape[:2]
+            h2, w2 = img2.shape[:2]
             pts1 = np.float32([[0,0],[0,h1],[w1,h1],[w1,0]]).reshape(-1,1,2)
             pts2 = np.float32([[0,0],[0,h2],[w2,h2],[w2,0]]).reshape(-1,1,2)
             pts2_ = cv.perspectiveTransform(pts2, H)
@@ -140,57 +139,84 @@ class Stitcher:
                         for j in range(t[0], w2+t[0]):
                             if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
                                 result[i][j] = img2[i-t[1]][j-t[0]]
+            BOUND = 4000
+            if reverse:
+                result = result[t[1]:h1+t[1],:,:]
+                if result.shape[1] > BOUND:
+                    result = result[:,:BOUND,:]
+            else:
+                result = result[t[1]:h2+t[1],:,:]
+                if result.shape[1] > BOUND:
+                    result = result[:,-BOUND:,:]
+            cnt = 0
+            cut1 = 0
+            cut2 = 0
+            flag = False
+            for j in range(0, result.shape[1]): # 从左到右
+                cnt = 0
+                for i in range(0, result.shape[0]): # 从上到下
+                    if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+                        cnt += 1
+                if flag == False and cnt < result.shape[0] * 0.8:
+                    cut1 = j
+                    flag = True
+                elif flag == True and cnt >= result.shape[0] * 0.8:
+                    cut2 = j
+                    break
+            if cut2 == 0:
+                cut2 = result.shape[1]
+            result = result[:, cut1:cut2, :]
+            cv_show('result', result)
             return result
 
         # apply a perspective transform to stitch the images together
         
-        # result = warpTwoImages(imageA, imageB, H, fusionMethod, reverse=reverse)
+        result = warpTwoImages(imageA, imageB, H, fusionMethod, reverse=reverse)
 
-        result = None
-        img = None
-        if reverse:
-            result = cv.warpPerspective(imageB, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0]))
-            img = imageA
-        else:
-            result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0]))
-            # result = np.concatenate([np.zeros((imageA.shape[0], imageA.shape[1], 3)), result], axis=1)
-            img = imageB
-        # cv_show('result_tmp', result)
-        fusion = Fusion()
-        if fusionMethod == "poisson":
-            result = fusion.poisson(result, img, reverse)
-        elif fusionMethod == "weight": 
-            result = fusion.weigh_fussion(result, img, reverse)
-        elif fusionMethod == "multiband":
-            result = fusion.Multiband(result, img, reverse)
-        else:
-            if reverse:
-                for i in range(0, img.shape[0]):
-                    for j in range(0, img.shape[1]):
-                        if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-                            result[i][j] = img[i][j]
-            else:
-                for i in range(0, img.shape[0]):
-                    for j in range(0, img.shape[1]):
-                        if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-                            result[i][j] = img[i][j]
-            # result[0:img.shape[0], 0:img.shape[1]] = img
+        # result = None
+        # img = None
+        # if reverse:
+        #     result = cv.warpPerspective(imageB, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0]))
+        #     img = imageA
+        # else:
+        #     result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0]))
+        #     img = imageB
+        # # cv_show('result_tmp', result)
+        # fusion = Fusion()
+        # if fusionMethod == "poisson":
+        #     result = fusion.poisson(result, img, reverse)
+        # elif fusionMethod == "weight": 
+        #     result = fusion.weigh_fussion(result, img, reverse)
+        # elif fusionMethod == "multiband":
+        #     result = fusion.Multiband(result, img, reverse)
+        # else:
+        #     if reverse:
+        #         for i in range(0, img.shape[0]):
+        #             for j in range(0, img.shape[1]):
+        #                 if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+        #                     result[i][j] = img[i][j]
+        #     else:
+        #         for i in range(0, img.shape[0]):
+        #             for j in range(0, img.shape[1]):
+        #                 if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+        #                     result[i][j] = img[i][j]
+        #     # result[0:img.shape[0], 0:img.shape[1]] = img
 
-        # cv_show('result_tmp', result)
-        cnt = 0
-        cut = 0
-        flag = False
-        for j in range(0, result.shape[1]): # 从左到右
-            cnt = 0
-            for i in range(0, result.shape[0]): # 从上到下
-                if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-                    cnt += 1
-            cut = j
-            if cnt >= result.shape[0] * 0.8 and flag == True:
-                break 
-            else:
-                flag = True
-        result = result[:, :cut, :]
+        # # cv_show('result_tmp', result)
+        # cnt = 0
+        # cut = 0
+        # flag = False
+        # for j in range(0, result.shape[1]): # 从左到右
+        #     cnt = 0
+        #     for i in range(0, result.shape[0]): # 从上到下
+        #         if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+        #             cnt += 1
+        #     cut = j
+        #     if cnt >= result.shape[0] * 0.8 and flag == True:
+        #         break 
+        #     else:
+        #         flag = True
+        # result = result[:, :cut, :]
         # cv_show('result', result)
         return result
 
