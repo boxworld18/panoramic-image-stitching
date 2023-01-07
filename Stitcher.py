@@ -12,9 +12,9 @@ class Stitcher:
     def stitch(self, images, ratio=0.75, reprojThresh=4.0, fusionMethod="default", showAny=True):
         print("==================Stitching begin==================")
         n = len(images)
-
+        
         # find the keypoints and descriptors with SIFT
-        reverse = False
+        reverse = True
         result = images[0]
         for i in range(1, n):
             reverse = not reverse
@@ -66,9 +66,9 @@ class Stitcher:
         (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
         print("opencv H: {}".format(H))
 
-        homography = Homography()
-        (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh) # H is 3x3 homography matrix   
-        print("our H: {}".format(H))
+        # homography = Homography()
+        # (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh) # H is 3x3 homography matrix   
+        # print("our H: {}".format(H))
 
         return (H, status)
 
@@ -93,7 +93,7 @@ class Stitcher:
                 result = cv.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin)) # 变换右侧图像
             else:
                 result = cv.warpPerspective(img1, Ht.dot(H), (xmax-xmin, ymax-ymin)) # 变换左侧图像
-            cv_show('result A', result)
+            # cv_show('result A', result)
 
             img = img2
             fusion = Fusion()
@@ -115,22 +115,22 @@ class Stitcher:
             return result
 
         # apply a perspective transform to stitch the images together
-        result = cv.warpPerspective(imageB, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))
-        # result = warpTwoImages(imageA, imageB, H, fusionMethod, reverse=reverse)
+        # result = cv.warpPerspective(imageB, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0] + imageB.shape[0]))
+        result = warpTwoImages(imageA, imageB, H, fusionMethod, reverse=reverse)
 
-        if showAny:
-            cv_show('result A', result)
+        # if showAny:
+        #     cv_show('result A', result)
 
-        img = imageA
-        fusion = Fusion()
-        if fusionMethod == "poisson":
-            result = fusion.poisson(result, img)
-        elif fusionMethod == "weight": 
-            result = fusion.weigh_fussion(result, img)
-        elif fusionMethod == "multiband":
-            result = fusion.Multiband(result, img)
-        else:
-            result[0:img.shape[0], 0:img.shape[1]] = img
+        # img = imageA
+        # fusion = Fusion()
+        # if fusionMethod == "poisson":
+        #     result = fusion.poisson(result, img)
+        # elif fusionMethod == "weight": 
+        #     result = fusion.weigh_fussion(result, img)
+        # elif fusionMethod == "multiband":
+        #     result = fusion.Multiband(result, img)
+        # else:
+        #     result[0:img.shape[0], 0:img.shape[1]] = img
         return result
 
 

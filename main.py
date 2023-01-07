@@ -13,7 +13,9 @@ def parse_args():
     parser.add_argument('--pic1', type=str, default=PIC_1, help='path to the first image')
     parser.add_argument('--pic2', type=str, default=PIC_2, help='path to the second image')
     parser.add_argument('--pic3', type=str, default=PIC_3, help='path to the third image')
-    parser.add_argument('--pic4', type=str, default=None, help='path to the fourth image')
+    parser.add_argument('--pic4', type=str, default=PIC_4, help='path to the fourth image')
+    parser.add_argument('--pic5', type=str, default=PIC_5, help='path to the fifth image')
+    parser.add_argument('--pic6', type=str, default=PIC_6, help='path to the sixth image')
     # 最多支持4张图片拼接
     parser.add_argument('--pic_out', type=str, default=PIC_OUT, help='path to the output image')
     parser.add_argument('--pic_cv_result', type=str, default=PIC_CV_RESULT, help='path to the output image')
@@ -30,7 +32,7 @@ def main():
 
     # read images
     images = []
-    paths = [args.pic1, args.pic2, args.pic3, args.pic4]
+    paths = [args.pic1, args.pic2, args.pic3, args.pic4, args.pic5, args.pic6]
     for i in range(args.number):
         images.append(cv_read(paths[i]))
 
