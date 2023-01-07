@@ -39,6 +39,10 @@ class Stitcher:
             # reverse == True: imageB -> imageA (left + H[right])
             # reverse == False: imageA -> imageB (H[left] + right)
 
+            # cylindrical projection (useless feature)
+            # imageA = self.cylindricalProjection(imageA)
+            # imageB = self.cylindricalProjection(imageB)
+            
             # find the keypoints and descriptors with SIFT
             kpA, desA = self.sift(imageA)
             kpB, desB = self.sift(imageB)
