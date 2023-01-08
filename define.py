@@ -1,5 +1,7 @@
-PIC_TAG = 'elden2'
+PIC_TAG = 'elden3'
 PIC_SUFFIX = '.png'
+FUSION = 'default'
+NUMBER = 6
 PIC_1 = 'pics/{}/1{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_2 = 'pics/{}/2{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_3 = 'pics/{}/3{}'.format(PIC_TAG, PIC_SUFFIX)
@@ -8,6 +10,6 @@ PIC_5 = 'pics/{}/5{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_6 = 'pics/{}/6{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_SIFT = 'pics/{}/sift{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_MATCH = 'pics/{}/match{}'.format(PIC_TAG, PIC_SUFFIX)
-PIC_OUT = 'pics/{}/out{}'.format(PIC_TAG, PIC_SUFFIX)
+PIC_OUT = 'pics/{}/out_{}_{}{}'.format(PIC_TAG, FUSION, NUMBER, PIC_SUFFIX)
 PIC_RESULT = 'pics/{}/result{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_CV_RESULT = 'pics/{}/cv_result{}'.format(PIC_TAG, PIC_SUFFIX)

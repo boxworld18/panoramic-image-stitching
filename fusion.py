@@ -5,35 +5,35 @@ from utils import cv_show
 class Fusion:
 	
 	# 泊松融合
-	def poisson(self, result, image, reverse, t):
+	def poisson(self, result, image, reverse, t, h_top, w_top):
 		h, w = image.shape[:2]
-		for i in range(t[1], h+t[1]):
-			for j in range(t[0], w+t[0]):
+		for i in range(t[1], h_top):
+			for j in range(t[0], w_top):
 				if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
 					result[i][j] = image[i-t[1]][j-t[0]]
 		mask = 255 * np.ones(image.shape, dtype=image.dtype)
-		result = cv.seamlessClone(image, result, mask, (t[0] + image.shape[1] // 2, t[1] + image.shape[0] // 2), cv.NORMAL_CLONE)		
+		result = cv.seamlessClone(image, result, mask, (t[0] + (w_top - t[0]) // 2, t[1] + (h_top - t[1]) // 2), cv.NORMAL_CLONE)		
 		return result
 
 
 	# 加权融合
-	def weigh_fussion(self, result, image, reverse, t):
+	def weigh_fussion(self, result, image, reverse, t, h_top, w_top):
 		h, w = image.shape[:2]
 		if(reverse == False):
 			right_top, right_bottom = t[0], t[0]
-			for j in range(t[0] + w - 1, t[0] -1, -1):
+			for j in range(w_top - 1, t[0] -1, -1):
 				if result[t[1]][j][0] != 0 or result[t[1]][j][1] != 0 or result[t[1]][j][2] != 0:
 					right_top = j
 					break
-			for j in range(t[0] + w - 1, t[0] -1, -1):
-				if result[t[1] + h - 1][j][0] != 0 or result[t[1] + h - 1][j][1] != 0 or result[t[1] + h - 1][j][2] != 0:
+			for j in range(w_top - 1, t[0] -1, -1):
+				if result[h_top - 1][j][0] != 0 or result[h_top - 1][j][1] != 0 or result[h_top - 1][j][2] != 0:
 					right_bottom = j
 					break
 			end = right_top if right_top > right_bottom else right_bottom
 			width = end - t[0] + 1
 			alpha = 1.0
-			result[t[1]:t[1]+h, end + 1:t[0]+w] = image[0:image.shape[0], width:image.shape[1]]
-			for i in range(t[1], t[1] + h):
+			result[t[1]:h_top, end + 1:w_top] = image[0:h_top-t[1], width:w_top-t[0]]
+			for i in range(t[1], h_top):
 				for j in range(end, t[0] - 1, -1):
 					if result[i][j][0] == 0 and result[i][j][1] == 0 and result[i][j][2] == 0:
 						alpha = 1.0
@@ -41,21 +41,21 @@ class Fusion:
 						alpha = 1.0 - (end - j) / width
 					result[i][j] = alpha * image[i - t[1]][j - t[0]] + (1 - alpha) * result[i][j]
 		else:
-			left_top, left_bottom = t[0] + w, t[0] + w
-			for j in range(t[0], t[0] + w):
+			left_top, left_bottom = w_top, w_top
+			for j in range(t[0], w_top):
 				if result[t[1]][j][0] != 0 or result[t[1]][j][1] != 0 or result[t[1]][j][2] != 0:
 					left_top = j
 					break
-			for j in range(t[0], t[0] + w):
-				if result[t[1] + h - 1][j][0] != 0 or result[t[1] + h - 1][j][1] != 0 or result[t[1] + h - 1][j][2] != 0:
+			for j in range(t[0], w_top):
+				if result[h_top - 1][j][0] != 0 or result[h_top - 1][j][1] != 0 or result[h_top - 1][j][2] != 0:
 					left_bottom = j
 					break
 			start = left_top if left_top < left_bottom else left_bottom
-			width = t[0] + w - start
+			width = w_top - start
 			alpha = 1.0
-			result[t[1]:t[1] + h, t[0]:start] = image[0:image.shape[0], 0:start - t[0]]
-			for i in range(t[1], t[1] + h):
-				for j in range(start, t[0] + w):
+			result[t[1]:h_top, t[0]:start] = image[0:h_top-t[1], 0:start - t[0]]
+			for i in range(t[1], h_top):
+				for j in range(start, w_top):
 					if result[i][j][0] == 0 and result[i][j][1] == 0 and result[i][j][2] == 0:
 						alpha = 1.0
 					else:
@@ -64,18 +64,18 @@ class Fusion:
 		return result
 
 	# 金字塔融合
-	def Multiband(self, result, image, reverse, t):
+	def Multiband(self, result, image, reverse, t, h_top, w_top):
 		num_levels = 6
 		h, w = image.shape[:2]
 		source = np.zeros(result.shape, dtype = result.dtype)
-		source[t[1] : t[1] + h, t[0] : t[0] + w] = image
+		source[t[1] : h_top, t[0] : w_top] = image[:h_top - t[1], :w_top - t[0]]
 		mask = np.ones(result.shape, dtype = np.float32)
 		mask[result == 0] = 0
 
 		if (reverse == False):
-			for i in range(t[1], t[1] + h):
+			for i in range(t[1], h_top):
 				right = t[0]
-				for j in range(t[0] + w - 1, t[0] -1, -1):
+				for j in range(w_top - 1, t[0] -1, -1):
 					if result[i][j][0] != 0 or result[i][j][1] != 0 or result[i][j][2] != 0:
 						right = j
 						break
@@ -85,15 +85,15 @@ class Fusion:
 						if(mask[i][j].all() == 1):
 							mask[i][j] = (right - j) / width
 		else:
-			for i in range(t[1], t[1] + h):
-				left = t[0] + w
-				for j in range(t[0], t[0] + w):
+			for i in range(t[1], h_top):
+				left = w_top
+				for j in range(t[0], w_top):
 					if result[i][j][0] != 0 or result[i][j][1] != 0 or result[i][j][2] != 0:
 						left = j
 						break
-				if left != t[0] + w:
-					width = t[0] + w - left
-					for j in range(left, t[0] + w):
+				if left != w_top:
+					width = w_top - left
+					for j in range(left, w_top):
 						if(mask[i][j].all() == 1):
 							mask[i][j] = (j - left) / width
 
@@ -144,6 +144,12 @@ class Fusion:
 		# 融合结果		
 		return ls_
 		
+	def simple(self, result, img, reverse, t, h_top, w_top):
+		for i in range(t[1], h_top):
+			for j in range(t[0], w_top):
+				if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+					result[i][j] = img[i-t[1]][j-t[0]]
+		return result
 
 
 	
