@@ -10,23 +10,21 @@ from define import *
 class Stitcher:
 
     def __init__(self):
-        self.fusionNum = 0
+        pass
 
     # panoramic image stitching
-    def stitch(self, images, ratio=0.75, reprojThresh=4.0, fusionMethod="default", showAny=True):
+    def stitch(self, images, ratio=0.75, reprojThresh=4.0, fusionMethod="default"):
         print("==================Stitching begin==================")
         n = len(images)
         
-        # A B C       0 -> 1 into 1 | -1 -> -2 into -2 | final: 3 // 2 = 1
-        # A B C D     0 -> 1 into 1 | -1 -> -2 into -2 | 1 -> 2 into 2 | final: 4 // 2 = 2   
-        # A B C D E   0 -> 1 into 1 | -1 -> -2 into -2 | 1 -> 2 into 2 | -2 -> -3 into -3 | final: 5 // 2 = 2
+        # A B C       0 -> 1 into 1 | -1 -> -2 into -2 |                                                    final: 3 // 2 = 1
+        # A B C D     0 -> 1 into 1 | -1 -> -2 into -2 | 1 -> 2 into 2 |                                    final: 4 // 2 = 2   
+        # A B C D E   0 -> 1 into 1 | -1 -> -2 into -2 | 1 -> 2 into 2 | -2 -> -3 into -3 |                 final: 5 // 2 = 2
         # A B C D E F 0 -> 1 into 1 | -1 -> -2 into -2 | 1 -> 2 into 2 | -2 -> -3 into -3 | 2 -> 3 into 3 | final: 6 // 2 = 3
 
-        i = 0
-        cnt = 0
+        i = cnt = 0
         reverse = True
-        imageA = None
-        imageB = None
+        imageA = imageB = None
         while cnt < n - 1:
             if reverse: # imageA -> imageB
                 imageA = images[i]
@@ -67,7 +65,7 @@ class Stitcher:
             # matchImage = self.drawMatches(imageA, imageB, kpA, kpB, matches, status)    
             
             # apply a perspective transform to stitch the images together
-            result = self.fusion((imageA, imageB), H, fusionMethod, reverse=reverse, showAny=showAny)
+            result = self.fusion((imageA, imageB), H, fusionMethod, reverse=reverse)
             if reverse:
                 images[-i - 2] = result
                 i += 1
@@ -114,149 +112,95 @@ class Stitcher:
         ptsA = np.array([kpA[i] for (_, i) in matches]).astype(np.float32)
         ptsB = np.array([kpB[i] for (i, _) in matches]).astype(np.float32)
 
-        (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
-        print("opencv H: {}".format(H))
+        # (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
+        # print("opencv H: {}".format(H))
 
-        # homography = Homography()
-        # (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh) # H is 3x3 homography matrix   
-        # print("our H: {}".format(H))
+        homography = Homography()
+        (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh) # H is 3x3 homography matrix   
+        print("our H: {}".format(H))
 
         return (H, status)
 
-    def fusion(self, images, H, fusionMethod, reverse=False, showAny=True):
+    def fusion(self, images, H, fusionMethod, reverse=False):
         imageA, imageB = images
+        h1, w1 = imageA.shape[0], imageA.shape[1]
+        h2, w2 = imageB.shape[0], imageB.shape[1]
+        m1 = np.array([[[0, 0]],[[0, h1]],[[w1, h1]],[[w1, 0]]]).astype(np.float32)
+        m2 = np.array([[[0, 0]],[[0, h2]],[[w2, h2]],[[w2, 0]]]).astype(np.float32)
+        m2 = cv.perspectiveTransform(m2, H)
+        m = np.concatenate((m1, m2), axis=0)
+        xmin, ymin = (np.min(m, axis=0).ravel() - 0.5).astype(np.int32)
+        xmax, ymax = (np.max(m, axis=0).ravel() + 0.5).astype(np.int32)
+        t = [-xmin, -ymin]
+        H_pers = np.array([[1, 0, t[0]],[0, 1, t[1]],[0, 0, 1]]).dot(H) # translate
+        h, w = (ymax - ymin, xmax - xmin)
 
-        def warpTwoImages(img1, img2, H, fusionMethod, reverse=False):
-            h1, w1 = img1.shape[:2]
-            h2, w2 = img2.shape[:2]
-            pts1 = np.float32([[0,0],[0,h1],[w1,h1],[w1,0]]).reshape(-1,1,2)
-            pts2 = np.float32([[0,0],[0,h2],[w2,h2],[w2,0]]).reshape(-1,1,2)
-            pts2_ = cv.perspectiveTransform(pts2, H)
-            pts = np.concatenate((pts1, pts2_), axis=0)
-            [xmin, ymin] = np.int32(pts.min(axis=0).ravel() - 0.5)
-            [xmax, ymax] = np.int32(pts.max(axis=0).ravel() + 0.5)
-            t = [-xmin,-ymin]
-            Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
-
-            # h, w = (min(ymax-ymin, h1+h2), min(xmax-xmin, w1+w2))
-            h, w = (ymax - ymin, xmax - xmin)
-
-            print('h1: {}, h2: {}, w1: {}, w2: {}'.format(h1, h2, w1, w2))
-            print('h: {}, w: {}'.format(h, w))
-            print('t: {}'.format(t))
-            
-            result = None
-            if reverse: 
-                result = cv.warpPerspective(img2, Ht.dot(H), (w, h)) # 变换右侧图像
-            else:
-                result = cv.warpPerspective(img1, Ht.dot(H), (w, h)) # 变换左侧图像
-            # cv_show('result A', result)
-
-            img = img1 if reverse else img2
-            fusion = Fusion()
-            if fusionMethod == "poisson":
-                result = fusion.poisson(result, img, reverse, t)
-            elif fusionMethod == "weight": 
-                result = fusion.weigh_fussion(result, img, reverse, t)
-            elif fusionMethod == "multiband":
-                result = fusion.Multiband(result, img, reverse, t)
-            else:
-                if reverse:
-                    for i in range(t[1], min(h1+t[1], h)):
-                        for j in range(t[0], min(w1+t[0], w)):
-                            if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-                                result[i][j] = img1[i-t[1]][j-t[0]]
-                else:
-                    for i in range(t[1], min(h2+t[1], h)):
-                        for j in range(t[0], min(w2+t[0], w)):
-                            if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-                                result[i][j] = img2[i-t[1]][j-t[0]]
-            
-            print('result shape: {}'.format(result.shape))
-
-            BOUND = 4000
-            if reverse:
-                result = result[t[1]:min(h1+t[1], h),:,:]
-                if result.shape[1] > BOUND:
-                    result = result[:,:BOUND,:]
-            else:
-                result = result[t[1]:min(h2+t[1], h),:,:]
-                if result.shape[1] > BOUND:
-                    result = result[:,-BOUND:,:]
-            cnt = 0
-            cut1 = 0
-            cut2 = 0
-            flag = False
-            for j in range(0, result.shape[1]): # 从左到右
-                cnt = 0
-                for i in range(0, result.shape[0]): # 从上到下
-                    if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-                        cnt += 1
-                if flag == False and cnt < result.shape[0] * 0.8:
-                    cut1 = j
-                    flag = True
-                elif flag == True and cnt >= result.shape[0] * 0.8:
-                    cut2 = j
-                    break
-            if cut2 == 0:
-                cut2 = result.shape[1]
-            result = result[:, cut1:cut2, :]
-            # cv_show('result', result)
-            cv_write('result_{}.png'.format(self.fusionNum), result)
-            self.fusionNum += 1
-            return result
-
-        # apply a perspective transform to stitch the images together
+        print('h1: {}, h2: {}, w1: {}, w2: {}'.format(h1, h2, w1, w2))
+        print('h: {}, w: {}'.format(h, w))
+        print('t: {}'.format(t))
         
-        result = warpTwoImages(imageA, imageB, H, fusionMethod, reverse=reverse)
+        result = None
+        if reverse: 
+            result = cv.warpPerspective(imageB, H_pers, (w, h)) # 变换右侧图像
+        else:
+            result = cv.warpPerspective(imageA, H_pers, (w, h)) # 变换左侧图像
 
-        # result = None
-        # img = None
-        # if reverse:
-        #     result = cv.warpPerspective(imageB, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0]))
-        #     img = imageA
-        # else:
-        #     result = cv.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0]))
-        #     img = imageB
-        # # cv_show('result_tmp', result)
-        # fusion = Fusion()
-        # if fusionMethod == "poisson":
-        #     result = fusion.poisson(result, img, reverse)
-        # elif fusionMethod == "weight": 
-        #     result = fusion.weigh_fussion(result, img, reverse)
-        # elif fusionMethod == "multiband":
-        #     result = fusion.Multiband(result, img, reverse)
-        # else:
-        #     if reverse:
-        #         for i in range(0, img.shape[0]):
-        #             for j in range(0, img.shape[1]):
-        #                 if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-        #                     result[i][j] = img[i][j]
-        #     else:
-        #         for i in range(0, img.shape[0]):
-        #             for j in range(0, img.shape[1]):
-        #                 if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-        #                     result[i][j] = img[i][j]
-        #     # result[0:img.shape[0], 0:img.shape[1]] = img
+        img = imageA if reverse else imageB
+        h_top = min(img.shape[0]+t[1], h)
+        w_top = min(img.shape[1]+t[0], w)
+        fusion = Fusion()
+        if fusionMethod == "poisson":
+            result = fusion.poisson(result, img, reverse, t, h_top, w_top)
+        elif fusionMethod == "weight": 
+            result = fusion.weigh_fussion(result, img, reverse, t, h_top, w_top)
+        elif fusionMethod == "multiband":
+            result = fusion.Multiband(result, img, reverse, t, h_top, w_top)
+        else:
+            result = fusion.simple(result, img, reverse, t, h_top, w_top)
+        print('result shape: {}'.format(result.shape))
 
-        # # cv_show('result_tmp', result)
-        # cnt = 0
-        # cut = 0
-        # flag = False
-        # for j in range(0, result.shape[1]): # 从左到右
-        #     cnt = 0
-        #     for i in range(0, result.shape[0]): # 从上到下
-        #         if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
-        #             cnt += 1
-        #     cut = j
-        #     if cnt >= result.shape[0] * 0.8 and flag == True:
-        #         break 
-        #     else:
-        #         flag = True
-        # result = result[:, :cut, :]
-        # cv_show('result', result)
+        BOUND = 4000
+        result = result[t[1]:h_top,:,:]
+        result = result[:,:BOUND,:] if reverse else result[:,-BOUND:,:]
+        result = self.cut(result)
+
         return result
 
+    def cut(self, result):
+        cnt = cut1 = cut2 = 0
+        flag = False
+        for j in range(0, result.shape[1]): # 从左到右
+            cnt = 0
+            for i in range(0, result.shape[0]): # 从上到下
+                if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+                    cnt += 1
+            if flag == False and cnt < result.shape[0] * 0.8:
+                cut1 = j
+                flag = True
+            elif flag == True and cnt >= result.shape[0] * 0.8:
+                cut2 = j
+                break
+        if cut2 == 0:
+            cut2 = result.shape[1]
+        result = result[:, cut1:cut2, :]
+
+        cnt = cut1 = cut2 = 0
+        flag = False
+        for i in range(0, result.shape[0]): # 从左到右
+            cnt = 0
+            for j in range(0, result.shape[1]): # 从上到下
+                if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
+                    cnt += 1
+            if flag == False and cnt < result.shape[1] * 0.3:
+                cut1 = i
+                flag = True
+            elif flag == True and cnt >= result.shape[1] * 0.3:
+                cut2 = i
+                break
+        if cut2 == 0:
+            cut2 = result.shape[0]
+        result = result[cut1:cut2:, :, :]
+        return result
 
     def drawMatches(self, imageA, imageB, kpA, kpB, matches, status):
         # initialize the output visualization image
