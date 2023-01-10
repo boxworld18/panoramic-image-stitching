@@ -1,6 +1,6 @@
 PIC_TAG = 'elden3'
 PIC_SUFFIX = '.png'
-FUSION = 'default'
+FUSION = 'weight'
 NUMBER = 6
 PIC_1 = 'pics/{}/1{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_2 = 'pics/{}/2{}'.format(PIC_TAG, PIC_SUFFIX)
