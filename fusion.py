@@ -11,7 +11,7 @@ class Fusion:
 			for j in range(t[0], w_top):
 				if result[i][j][0] == 0 or result[i][j][1] == 0 or result[i][j][2] == 0:
 					result[i][j] = image[i-t[1]][j-t[0]]
-		mask = 255 * np.ones(image.shape, dtype=image.dtype)
+		mask = 255 * np.ones((h_top - t[1], w_top - t[0]), dtype=image.dtype)
 		result = cv.seamlessClone(image, result, mask, (t[0] + (w_top - t[0]) // 2, t[1] + (h_top - t[1]) // 2), cv.NORMAL_CLONE)		
 		return result
 
