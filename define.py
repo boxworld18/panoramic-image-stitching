@@ -1,7 +1,7 @@
-PIC_TAG = 'road'
-PIC_SUFFIX = '.png'
-FUSION = 'multiband'
-NUMBER = 3
+PIC_TAG = 'snow'
+PIC_SUFFIX = '.jpg'
+FUSION = 'default'
+NUMBER = 2
 PIC_1 = 'pics/{}/1{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_2 = 'pics/{}/2{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_3 = 'pics/{}/3{}'.format(PIC_TAG, PIC_SUFFIX)

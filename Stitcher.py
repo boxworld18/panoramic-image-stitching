@@ -112,12 +112,12 @@ class Stitcher:
         ptsA = np.array([kpA[i] for (_, i) in matches]).astype(np.float32)
         ptsB = np.array([kpB[i] for (i, _) in matches]).astype(np.float32)
 
-        (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
-        print("opencv H: {}".format(H))
+        # (H, status) = cv.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh)
+        # print("opencv H: {}".format(H))
 
-        # homography = Homography()
-        # (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh) # H is 3x3 homography matrix   
-        # print("our H: {}".format(H))
+        homography = Homography()
+        (H, status) = homography.findHomography(ptsA, ptsB, cv.RANSAC, reprojThresh) # H is 3x3 homography matrix   
+        print("our H: {}".format(H))
 
         return (H, status)
 
