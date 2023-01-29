@@ -1,7 +1,7 @@
-PIC_TAG = 'snow'
-PIC_SUFFIX = '.jpg'
-FUSION = 'default'
-NUMBER = 2
+PIC_TAG = 'lihu'
+PIC_SUFFIX = '.png'
+FUSION = 'poisson'
+NUMBER = 5
 PIC_1 = 'pics/{}/1{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_2 = 'pics/{}/2{}'.format(PIC_TAG, PIC_SUFFIX)
 PIC_3 = 'pics/{}/3{}'.format(PIC_TAG, PIC_SUFFIX)
